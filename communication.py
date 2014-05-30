@@ -24,14 +24,19 @@ import socket
 import select
 import sys
 from time import gmtime, strftime
+from datetime import datetime
+from crypto import text2ascii, sha1, symm_key
 
-maxBuffer = 1024      # Maximum allowed buffer
+MAX_BUFFER = 1024      # Maximum allowed buffer
 CONNECTION_LIST = []  # List to keep track of socket descriptors
 
 
-# Returns a socket descriptor binding [optional] host to serverPort
-# Default host is localhost visible to everybody.
-def create_socket(serverPort, host='0.0.0.0', server=False):
+# Returns a socket descriptor
+# The default host for hosting/connecting is localhost visible to everybody.
+# If the server flag is True, it will bind the host to the specified port.
+# If the server flag is False, it will connect to the specified host:port
+# it will bind the socket t
+def create_socket(SERVER_PORT, host='0.0.0.0', server=False):
     # Try to create a TCP socket object named s
     try:
         print 'Creating socket..'
@@ -56,19 +61,19 @@ def create_socket(serverPort, host='0.0.0.0', server=False):
     if server is True:
         # The line below avoids 'port already in use' warning
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        # Try to bind socket s to the port serverPort
+        # Try to bind socket s to the port SERVER_PORT
         try:
             print 'Binding port to hostname..'
-            s.bind((host, serverPort))
+            s.bind((host, SERVER_PORT))
         except socket.error, msg:
             print 'Failed to bind socket. Error code: ' + str(msg[0]) +\
                   ' Error' + ' message: ' + msg[1]
             sys.exit()
     # If it's a client, connect it to the server socket.
     else:
-        # Try to connect to socket s in the specified port serverPort
+        # Try to connect to socket s in the specified port SERVER_PORT
         try:
-            s.connect((host, serverPort))
+            s.connect((host, SERVER_PORT))
         except socket.error, msg:
             print 'Failed to connect to socket. Error code: ' + str(msg[0]) +\
                   ' Error message: ' + msg[1]
@@ -77,21 +82,22 @@ def create_socket(serverPort, host='0.0.0.0', server=False):
     return s
 
 
-def listen_for_conn(serverPort, max_conn_request, max_nick_size,
-                    max_msg_length, version):
+# Listens for incoming connections
+def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
+                    MAX_MSG_LENGTH, VERSION):
 
-    server_socket = create_socket(serverPort, server=True)
+    server_socket = create_socket(SERVER_PORT, server=True)
 
     # Listen to connection requests
-    server_socket.listen(max_conn_request)
-    print 'Chat server started on port ' + str(serverPort)
-    print 'Maximum number of connected users: ' + str(max_conn_request)
+    server_socket.listen(MAX_CONN_REQUEST)
+    print 'Chat server started on port ' + str(SERVER_PORT)
+    print 'Maximum number of connected users: ' + str(MAX_CONN_REQUEST)
 
     # Add server socket to the list of readable connections
     CONNECTION_LIST.append(server_socket)
 
     while True:
-        # Get the list sockets which are ready to be read through select
+        # Get the list of sockets which are ready to be read through select
         try:
             read_sockets, write_sockets, error_sockets = select.select(
                                                 CONNECTION_LIST, [], [])
@@ -100,16 +106,22 @@ def listen_for_conn(serverPort, max_conn_request, max_nick_size,
             server_socket.close()
             print 'Socket closed.'
             sys.exit(1)
+
         for sock in read_sockets:
             #New connection
             if sock == server_socket:
-                # Handle the case in which there is a new connection received
-                # through server_socket
+                # Server socket is about to accept a new connection
                 sockfd, addr = server_socket.accept()
+                # Register the client socket descriptor in the CONNECTION_LIST
                 CONNECTION_LIST.append(sockfd)
+                # Application Protocol Three-way Handshake (SYN)
+                # Send server information
+                wassup(sockfd, MAX_CONN_REQUEST, MAX_NICK_SIZE, MAX_MSG_LENGTH,
+           VERSION)
+
                 print 'Client (%s, %s) connected' % addr
 
-                broadcast_data(sockfd, '\n' + strftime('[%H:%M:%S] ',
+                broadcast(sockfd, '\n' + strftime('[%H:%M:%S] ',
                                gmtime()) + '[%s:%s] entered room\n' % addr,
                                server_socket)
 
@@ -119,13 +131,17 @@ def listen_for_conn(serverPort, max_conn_request, max_nick_size,
                 try:
                     #In Windows, sometimes when a TCP program closes abruptly,
                     # a 'Connection reset by peer' exception will be thrown
-                    data = sock.recv(maxBuffer)
-                    if data:
-                        broadcast_data(sock, '\r' +
+                    data = sock.recv(MAX_BUFFER)
+                    # Application Protocol Three-way Handshake (ACK)
+                    if data[0] == "!":
+                        print '%s (%s) entrou no bate-papo.' %\
+                        (data.split(',')[0][1:], addr[0])
+                    elif data:
+                        broadcast(sock, '\r' +
                         strftime('[%H:%M:%S] ', gmtime()) + '<' +
-                        str(sock.getpeername()) + '> ' + data, server_socket)
+                       str(sock.getpeername()) + '> ' + data, server_socket)
                 except:
-                    broadcast_data(sock, 'Client (%s, %s) is offline' % addr,
+                    broadcast(sock, 'Client (%s, %s) is offline' % addr,
                                    server_socket)
                     print 'Client (%s, %s) is offline' % addr
                     sock.close()
@@ -135,10 +151,52 @@ def listen_for_conn(serverPort, max_conn_request, max_nick_size,
     server_socket.close()
 
 
+#     --------------------------------------------------------------------
+#    | TYPE | MAX_CONN_REQUEST | MAX_NICK_SIZE | MAX_MSG_LENGTH | VERSION |
+#    |  *   |                  |               |                |         |
+#    |______|__________________|_______________|________________|_________|
+#    |                     ASSYMMETRIC PUBLIC KEY                         |
+#    |____________________________________________________________________|
+def wassup(client_socket, MAX_CONN_REQUEST, MAX_NICK_SIZE, MAX_MSG_LENGTH,
+           VERSION):
+    wassup = '*,' + str(MAX_CONN_REQUEST) + ',' + str(MAX_NICK_SIZE) + ',' +\
+    str(MAX_MSG_LENGTH) + ',' + VERSION
+    private_message(client_socket, wassup)
+
+
+# *** Falta utilizar chave assimétrica enviada no wassup
+# para criptografar esse pacote. E a partir deste, teremos tudo
+# criptografado com a simétrica
+#     -------------------------
+#    | TYPE | NICKNAME | SHA-1 |
+#    |  !   |          |       |
+#    |______|__________|_______|
+#    |     SYMMETRIC KEY       |
+#    |_________________________|
+def acknowledge(nickname):
+    ip = socket.gethostbyname(socket.gethostname())
+    seconds = datetime.now().second
+    ascii = text2ascii(nickname)
+    s_k = symm_key(ip, seconds, ascii)
+
+    apdu = '!' + nickname + ',' + s_k
+    apdu_w_hash = apdu + sha1(apdu)
+
+    return apdu_w_hash
+
+
+#     --------------
+#    | TYPE | SHA-1 |
+#    |  3   |       |
+#    |______|_______|
+def request_nicklist():
+    pass
+
+
 #Function to broadcast chat messages to all connected clients
-def broadcast_data(sock, message, server_socket):
-    #Do not send the message to master sock    et and the client who has
-    #send us the message
+def broadcast(sock, message, server_socket):
+    #Do not send the message to server socket and the client who has
+    #sent the message
     for socket in CONNECTION_LIST:
         if socket != server_socket and socket != sock:
             try:
@@ -148,3 +206,16 @@ def broadcast_data(sock, message, server_socket):
                 #for example
                 socket.close()
                 CONNECTION_LIST.remove(socket)
+
+
+def private_message(target_socket, message):
+    #Send the message only to the target
+    for socket in CONNECTION_LIST:
+        if socket == target_socket:
+            try:
+                socket.send(message)
+            except:
+                # broken socket connection may be, chat client pressed ctrl+c
+                #for example
+                socket.close()
+                CONNECTION_LIST.remove(target_socket)

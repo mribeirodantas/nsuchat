@@ -21,11 +21,11 @@
 from communication import listen_for_conn
 import sys
 
-max_conn_request = 32    # Max number of connection requests concurrently
-max_nick_size = 6        # Max nickname length allowed
-max_msg_length = 100     # Max length of text message
-version = "0.1"          # version
-serverPort = None        # Define the port to listen
+MAX_CONN_REQUEST = 32    # Max number of connection requests concurrently
+MAX_NICK_SIZE = 6        # Max nickname length allowed
+MAX_MSG_LENGTH = 100     # Max length of text message
+VERSION = "0.1"          # version
+SERVER_PORT = 2020        # Define the port to listen
 
 if __name__ == "__main__":
     if(len(sys.argv) != 2):
@@ -41,5 +41,5 @@ if __name__ == "__main__":
         print 'Server port must be lower than 65535.'
     else:
         # Listening for connections
-        listen_for_conn(serverPort, max_conn_request, max_nick_size,
-                        max_msg_length, version)
+        listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
+                        MAX_MSG_LENGTH, VERSION)

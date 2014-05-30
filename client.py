@@ -22,6 +22,7 @@ from communication import create_socket
 import select
 import sys
 from time import gmtime, strftime
+from communication import acknowledge
 
 
 def prompt():
@@ -43,7 +44,6 @@ if __name__ == "__main__":
     else:
         client_socket = create_socket(serverPort)
         print 'Connected to the chat server'
-        prompt()
 
     while True:
         socket_list = [sys.stdin, client_socket]
@@ -59,8 +59,24 @@ if __name__ == "__main__":
                     print '\nDisconnected from chat server'
                     sys.exit()
                 else:
-                    sys.stdout.write(data)
-                    prompt()
+                    # wassup Data Unit
+                    if data[0] == '*':
+                        data = data.split(',')
+                        print '\nChat server configuration:'
+                        print 'Maximum number of connected users: ' +\
+                               data[1]
+                        print 'Maximum nickname length: ' + data[2]
+                        print 'Maximum message length: ' + data[3]
+                        print 'Protocol version: ' + data[4] + '\n'
+                        if len(sys.argv[1]) <= data[2]:
+                            # Client ACK
+                            client_socket.send(acknowledge(sys.argv[1]))
+                    # Server SYN+ACK
+                    elif data[0] == '#':
+                        prompt()
+                    else:
+                        sys.stdout.write(data)
+                        prompt()
 
             #user entered a message
             else:
