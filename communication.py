@@ -27,7 +27,7 @@ import select
 import sys
 from time import gmtime, strftime
 from datetime import datetime
-from crypto import text2ascii, sha1, symm_key
+from crypto import text2ascii, sha1, symm_key, encrypt
 
 MAX_BUFFER = 1024      # Maximum allowed buffer
 CONNECTION_LIST = []  # List to keep track of socket descriptors
@@ -136,6 +136,9 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                     data = sock.recv(MAX_BUFFER)
                     # Application Protocol Three-way Handshake (ACK)
                     if data[0] == "!":
+                        # Register symm_key from this user
+                        # Encrypt ACK_SYMM message and send it
+                        sock.send(acknowledge())
                         print '%s (%s) entrou no bate-papo.' %\
                         (data.split(',')[0][1:], addr[0])
                     elif data:
@@ -192,8 +195,13 @@ def synchronize(nickname):
 #    | TYPE | NICKNAME | SHA-1 |
 #    |  #   |          |       |
 #    |______|__________|_______|
-def acknowledge():
-    pass
+def acknowledge(nickname):
+    apdu = '#' + nickname
+    apdu_w_hash = apdu + sha1(apdu)
+    symm_key = None  # Look for the registered symm_key for this nickname
+    encrypted_apdu_w_hash = encrypt(apdu_w_hash, symm_key)
+
+    return encrypted_apdu_w_hash
 
 
 #     --------------

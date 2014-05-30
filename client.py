@@ -91,6 +91,7 @@ if __name__ == "__main__":
                     # Welcome Data Unit (Server ACK_SYMM)
                     elif data[0] == '#':
                         # First time you're gonna send something
+                        # Decrypt ACK_SYMM
                         pass
                     else:
                         sys.stdout.write(data)

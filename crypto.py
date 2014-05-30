@@ -63,8 +63,8 @@ def strxor(apdu, symm_key):     # xor two strings of different lengths
 
 
 # Takes APDU + SYMM_KEY
-# Outputs APDU cryptoed with SYMM_KEY
-def crypto(apdu, symm_key):
+# Outputs APDU encrypted with SYMM_KEY
+def encrypt(apdu, symm_key):
     #Concatenating text with SHA-1 hash of the text
     apdu_with_hash = apdu + sha1(apdu)
     return strxor(apdu_with_hash, symm_key)
