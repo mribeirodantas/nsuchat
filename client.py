@@ -1,28 +1,34 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
+# Zapzap client
+#
 # Copyright (©) 2014 Marcel Ribeiro Dantas
 #
-# mribeirodantas at fedoraproject.org
+# <mribeirodantas at fedoraproject.org>
 #
-# This program is free software: you can redistribute it and/or modify
+# This file is part of zapzap.
+#
+# Zapzap is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful,
+# Zapzap is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# along with zapzap. If not, see <http://www.gnu.org/licenses/>.
 
 from communication import create_socket
 import select
 import sys
 from time import gmtime, strftime
-from communication import acknowledge
+from communication import synchronize
+
+VERSION = 0.1  # Client Application Protocol Version
 
 
 def prompt():
@@ -59,7 +65,7 @@ if __name__ == "__main__":
                     print '\nDisconnected from chat server'
                     sys.exit()
                 else:
-                    # wassup Data Unit
+                    # wassup Data Unit (Server ACK)
                     if data[0] == '*':
                         data = data.split(',')
                         print '\nChat server configuration:'
@@ -68,12 +74,24 @@ if __name__ == "__main__":
                         print 'Maximum nickname length: ' + data[2]
                         print 'Maximum message length: ' + data[3]
                         print 'Protocol version: ' + data[4] + '\n'
-                        if len(sys.argv[1]) <= data[2]:
-                            # Client ACK
-                            client_socket.send(acknowledge(sys.argv[1]))
-                    # Server SYN+ACK
+                        if data[4] == str(VERSION):
+                            if len(sys.argv[1]) <= int(data[2]):
+                                # synchronize Data Unit (Client SYN_SYMM)
+                                client_socket.send(synchronize(sys.argv[1]))
+                            else:
+                                print 'Sorry, your nickname is too long.\n'
+                                sys.exit()
+                        else:
+                            print 'Sorry, version mismatch ocurred.\n' +\
+                            'Server Application Protocol Version: ' + data[4] +\
+                            '\nClient Application Protocol Version: ' +\
+                                                                 str(VERSION)
+                            sys.exit()
+                    # First Symmetrically encrypted Data Unit
+                    # Welcome Data Unit (Server ACK_SYMM)
                     elif data[0] == '#':
-                        prompt()
+                        # First time you're gonna send something
+                        pass
                     else:
                         sys.stdout.write(data)
                         prompt()

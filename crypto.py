@@ -1,25 +1,27 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
+# This module contains the functions in charge of encrypting the APDUs or that
+# are somehow related to those.
+#
 # Copyright (©) 2014 Marcel Ribeiro Dantas
 #
-# mribeirodantas at fedoraproject.org
+# <mribeirodantas at fedoraproject.org>
 #
-# This program is free software: you can redistribute it and/or modify
+# This file is part of zapzap.
+#
+# Zapzap is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful,
+# Zapzap is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-# This module contains the functions in charge of encrypting the APDUs or that
-# are somehow related to those.A
+# along with zapzap. If not, see <http://www.gnu.org/licenses/>.
 
 import hashlib
 

@@ -1,24 +1,26 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
+# Communication functions for zapzap.
+#
 # Copyright (©) 2014 Marcel Ribeiro Dantas
 #
-# mribeirodantas at fedoraproject.org
+# <mribeirodantas at fedoraproject.org>
 #
-# This program is free software: you can redistribute it and/or modify
+# This file is part of zapzap.
+#
+# Zapzap is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful,
+# Zapzap is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-# Server function that will listen for connections from chat clients
+# along with zapzap. If not, see <http://www.gnu.org/licenses/>.
 
 import socket
 import select
@@ -173,7 +175,7 @@ def wassup(client_socket, MAX_CONN_REQUEST, MAX_NICK_SIZE, MAX_MSG_LENGTH,
 #    |______|__________|_______|
 #    |     SYMMETRIC KEY       |
 #    |_________________________|
-def acknowledge(nickname):
+def synchronize(nickname):
     ip = socket.gethostbyname(socket.gethostname())
     seconds = datetime.now().second
     ascii = text2ascii(nickname)
@@ -183,6 +185,15 @@ def acknowledge(nickname):
     apdu_w_hash = apdu + sha1(apdu)
 
     return apdu_w_hash
+
+
+# First message encrypted with symm_key
+#     -------------------------
+#    | TYPE | NICKNAME | SHA-1 |
+#    |  #   |          |       |
+#    |______|__________|_______|
+def acknowledge():
+    pass
 
 
 #     --------------
