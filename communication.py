@@ -26,8 +26,7 @@ import socket
 import select
 import sys
 from time import gmtime, strftime
-from datetime import datetime
-from crypto import text2ascii, sha1, symm_key, encrypt
+from crypto import sha1, encrypt
 
 MAX_BUFFER = 1024      # Maximum allowed buffer
 CONNECTION_LIST = []  # List to keep track of socket descriptors
@@ -36,8 +35,8 @@ CONNECTION_LIST = []  # List to keep track of socket descriptors
 # Returns a socket descriptor
 # The default host for hosting/connecting is localhost visible to everybody.
 # If the server flag is True, it will bind the host to the specified port.
-# If the server flag is False, it will connect to the specified host:port
-# it will bind the socket t
+# If the server flag is False (default), it will connect to the specified
+# host:port
 def create_socket(SERVER_PORT, host='0.0.0.0', server=False):
     # Try to create a TCP socket object named s
     try:
@@ -136,11 +135,15 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                     data = sock.recv(MAX_BUFFER)
                     # Application Protocol Three-way Handshake (ACK)
                     if data[0] == "!":
+                        nickname = data.split(',')[0][1:]
+                        symmetric_key = data.split(',')[1][:-40]
+                        crc = data.split(',')[1][-40:]
                         # Register symm_key from this user
-                        # Encrypt ACK_SYMM message and send it
-                        sock.send(acknowledge())
+                        register(addr[0], sock, nickname, symmetric_key, crc)
+                        ## Encrypt ACK_SYMM message and send it
+                        acknowledge(sock, nickname, symmetric_key)
                         print '%s (%s) entrou no bate-papo.' %\
-                        (data.split(',')[0][1:], addr[0])
+                              (nickname, addr[0])
                     elif data:
                         broadcast(sock, '\r' +
                         strftime('[%H:%M:%S] ', gmtime()) + '<' +
@@ -166,24 +169,19 @@ def wassup(client_socket, MAX_CONN_REQUEST, MAX_NICK_SIZE, MAX_MSG_LENGTH,
            VERSION):
     wassup = '*,' + str(MAX_CONN_REQUEST) + ',' + str(MAX_NICK_SIZE) + ',' +\
     str(MAX_MSG_LENGTH) + ',' + VERSION
-    private_message(client_socket, wassup)
+    server_message(client_socket, wassup)
 
 
 # *** Falta utilizar chave assimétrica enviada no wassup
 # para criptografar esse pacote. E a partir deste, teremos tudo
 # criptografado com a simétrica
-#     -------------------------
-#    | TYPE | NICKNAME | SHA-1 |
-#    |  !   |          |       |
-#    |______|__________|_______|
-#    |     SYMMETRIC KEY       |
-#    |_________________________|
-def synchronize(nickname):
-    ip = socket.gethostbyname(socket.gethostname())
-    seconds = datetime.now().second
-    ascii = text2ascii(nickname)
-    s_k = symm_key(ip, seconds, ascii)
-
+#     ----------------------------
+#    | TYPE | NICKNAME | SYMM_KEY |
+#    |  !   |          |          |
+#    |______|__________|__________|
+#    |           SHA-1            |
+#    |____________________________|
+def synchronize_symm(nickname, s_k):
     apdu = '!' + nickname + ',' + s_k
     apdu_w_hash = apdu + sha1(apdu)
 
@@ -195,13 +193,11 @@ def synchronize(nickname):
 #    | TYPE | NICKNAME | SHA-1 |
 #    |  #   |          |       |
 #    |______|__________|_______|
-def acknowledge(nickname):
+def acknowledge(client_socket, nickname, symm_key):
     apdu = '#' + nickname
-    apdu_w_hash = apdu + sha1(apdu)
-    symm_key = None  # Look for the registered symm_key for this nickname
-    encrypted_apdu_w_hash = encrypt(apdu_w_hash, symm_key)
+    encrypted_apdu = encrypt(apdu, symm_key)
 
-    return encrypted_apdu_w_hash
+    server_message(client_socket, encrypted_apdu)
 
 
 #     --------------
@@ -227,7 +223,7 @@ def broadcast(sock, message, server_socket):
                 CONNECTION_LIST.remove(socket)
 
 
-def private_message(target_socket, message):
+def server_message(target_socket, message):
     #Send the message only to the target
     for socket in CONNECTION_LIST:
         if socket == target_socket:
@@ -238,3 +234,10 @@ def private_message(target_socket, message):
                 #for example
                 socket.close()
                 CONNECTION_LIST.remove(target_socket)
+
+
+def register(ip, socket_descriptor, nickname, symm_key, crc):
+    print '\nRegistrar ' + nickname
+    print 'IP: ' + ip
+    print 'Symmetric Key: ' + symm_key
+    print 'SHA-1: ' + crc

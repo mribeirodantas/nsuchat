@@ -47,7 +47,7 @@ def text2ascii(text):
 # The symm_key is the concatenation of the IP (joined without the dots), the
 # seconds at which the connection was requested and the nickname converted into
 # ASCII (integer for each char).
-def symm_key(ip, seconds, nickname):
+def gen_symm_key(ip, seconds, nickname):
     ip_no_dots = ip.replace('.', '')
     ascii = text2ascii(nickname)
     symm_key = ip_no_dots + str(seconds) + ascii
@@ -68,3 +68,9 @@ def encrypt(apdu, symm_key):
     #Concatenating text with SHA-1 hash of the text
     apdu_with_hash = apdu + sha1(apdu)
     return strxor(apdu_with_hash, symm_key)
+
+
+# Takes encrypted APDU and outputs decrypted APDU
+def decrypt(encrypted_apdu, symm_key):
+    decrypted = strxor(encrypted_apdu, symm_key)
+    return decrypted[:-40]

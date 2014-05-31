@@ -24,9 +24,12 @@
 
 from communication import create_socket
 import select
+import socket
 import sys
 from time import gmtime, strftime
-from communication import synchronize
+from communication import synchronize_symm
+from crypto import decrypt, text2ascii, gen_symm_key
+from datetime import datetime
 
 VERSION = 0.1  # Client Application Protocol Version
 
@@ -77,7 +80,13 @@ if __name__ == "__main__":
                         if data[4] == str(VERSION):
                             if len(sys.argv[1]) <= int(data[2]):
                                 # synchronize Data Unit (Client SYN_SYMM)
-                                client_socket.send(synchronize(sys.argv[1]))
+                                ip = socket.gethostbyname(socket.gethostname())
+                                seconds = datetime.now().second
+                                ascii = text2ascii(sys.argv[1])
+                                symm_key = gen_symm_key(ip, seconds, ascii)
+                                client_socket.send(
+                                    synchronize_symm(sys.argv[1], symm_key)
+                                    )
                             else:
                                 print 'Sorry, your nickname is too long.\n'
                                 sys.exit()
@@ -89,13 +98,17 @@ if __name__ == "__main__":
                             sys.exit()
                     # First Symmetrically encrypted Data Unit
                     # Welcome Data Unit (Server ACK_SYMM)
-                    elif data[0] == '#':
-                        # First time you're gonna send something
-                        # Decrypt ACK_SYMM
-                        pass
                     else:
-                        sys.stdout.write(data)
-                        prompt()
+                        # Decrypt ACK_SYMM
+                        data = decrypt(data, symm_key)
+                        if data[0] == '#':
+                            # First time you're gonna send something
+                            print "Four-way handshake finished. Welcome " +\
+                                  data[1:] + '.'
+                            prompt()
+                        else:
+                            sys.stdout.write(data)
+                            prompt()
 
             #user entered a message
             else:

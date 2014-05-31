@@ -32,7 +32,7 @@ VERSION = "0.1"          # version
 SERVER_PORT = 2020        # Define the port to listen
 
 if __name__ == "__main__":
-    if(len(sys.argv) != 2):
+    if (len(sys.argv) != 2):
         print 'Usage: python server.py port'
         sys.exit()
     else:
