@@ -96,6 +96,9 @@ if __name__ == "__main__":
                             '\nClient Application Protocol Version: ' +\
                                                                  str(VERSION)
                             sys.exit()
+                    elif data[0] == '$':
+                        sys.stdout.write(data[1:])
+                        prompt()
                     # First Symmetrically encrypted Data Unit
                     # Welcome Data Unit (Server ACK_SYMM)
                     else:

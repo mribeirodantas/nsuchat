@@ -208,13 +208,19 @@ def request_nicklist():
     pass
 
 
-#Function to broadcast chat messages to all connected clients
+#     --------------
+#    | TYPE |  MSG  |
+#    |  $   |       |
+#    |______|_______|
+# Function to broadcast chat messages to all connected clients
+# There is no reason to encrypt such
 def broadcast(sock, message, server_socket):
     #Do not send the message to server socket and the client who has
     #sent the message
     for socket in CONNECTION_LIST:
         if socket != server_socket and socket != sock:
             try:
+                message = '$' + message
                 socket.send(message)
             except:
                 # broken socket connection may be, chat client pressed ctrl+c
