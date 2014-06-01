@@ -136,7 +136,7 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                         symmetric_key = data.split(',')[1][:-40]
                         crc = data.split(',')[1][-40:]
                         # Register symm_key from this user
-                        register(addr[0], str(sock.getpeername()[1]), nickname,
+                        register(addr[0], str(sock.fileno()), nickname,
                                 symmetric_key, crc)
                         ## Encrypt ACK_SYMM message and send it
                         acknowledge(sock, nickname, symmetric_key)
@@ -147,14 +147,14 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                                server_socket)
                     elif data:
                         for usuario in USERS_LIST:
-                            if str(sock.getpeername()[1]) == usuario[1]:
+                            if str(sock.fileno()) == usuario[1]:
                                 nickname = usuario[2]
                         broadcast(sock, '\r' +
                         strftime('[%H:%M:%S] ', gmtime()) + '<' +
                        nickname + '> ' + data, server_socket)
                 except:
                     for usuario in USERS_LIST:
-                            if str(sock.getpeername()[1]) == usuario[1]:
+                            if str(sock.fileno()) == usuario[1]:
                                 nickname = usuario[2]
                     broadcast(sock, '\n' +
                         strftime('[%H:%M:%S] ', gmtime()) + '[' +
