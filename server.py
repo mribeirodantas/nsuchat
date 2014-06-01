@@ -37,11 +37,11 @@ if __name__ == "__main__":
         sys.exit()
     else:
         try:
-            serverPort = int(sys.argv[1])
+            SERVER_PORT = int(sys.argv[1])
         except ValueError:
             print 'Server port must be an integer.'
             sys.exit()
-    if serverPort > 65535:
+    if SERVER_PORT > 65535:
         print 'Server port must be lower than 65535.'
     else:
         # Listening for connections
