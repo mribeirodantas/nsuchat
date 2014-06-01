@@ -153,7 +153,7 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                         strftime('[%H:%M:%S] ', gmtime()) + '<' +
                        nickname + '> ' + data, server_socket)
                 except:
-                    broadcast(sock, '\nClient (%s, %s) is offline' % addr,
+                    broadcast(sock, '\nClient (%s, %s) is offline\n' % addr,
                                    server_socket)
                     print 'Client (%s, %s) is offline' % addr
                     sock.close()

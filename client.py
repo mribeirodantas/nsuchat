@@ -40,18 +40,24 @@ def prompt():
 
 if __name__ == "__main__":
     if(len(sys.argv) != 3):
-        print 'Usage: python client.py nickname port'
+        print 'Usage: python client.py nickname server:port'
         sys.exit()
     else:
         try:
-            serverPort = int(sys.argv[2])
+            # If server was informed
+            if len(sys.argv[2].split(':')) == 2:
+                serverPort = int(sys.argv[2].split(':')[1])
+                server = sys.argv[2].split(':')[0]
+            else:
+                serverPort = int(sys.argv[2])
+                server = '0.0.0.0'
         except ValueError:
             print 'Server port must be an integer.'
             sys.exit()
     if serverPort > 65535:
         print 'Server port must be lower than 65535.'
     else:
-        client_socket = create_socket(serverPort)
+        client_socket = create_socket(serverPort, server)
         print 'Connected to the chat server'
 
     while True:
