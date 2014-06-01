@@ -228,8 +228,12 @@ def broadcast(sock, message, server_socket):
     for socket in CONNECTION_LIST:
         if socket != server_socket and socket != sock:
             try:
-                message = '$' + message
-                socket.send(message)
+                for usuario in USERS_LIST:
+                    if usuario[1] == str(socket.fileno()):
+                        symm_key = usuario[3]
+                        message = '$' + message
+                        msg_encrypted = encrypt(message, symm_key)
+                        socket.send(msg_encrypted)
             except:
                 # broken socket connection may be, chat client pressed ctrl+c
                 #for example
@@ -250,9 +254,9 @@ def server_message(target_socket, message):
                 CONNECTION_LIST.remove(target_socket)
 
 
-def register(ip, socket_peername, nickname, symm_key, crc):
+def register(ip, socket_id, nickname, symm_key, crc):
     # Check CRC (missing)
-    USERS_LIST.append((ip, socket_peername, nickname, symm_key))
+    USERS_LIST.append((ip, socket_id, nickname, symm_key))
     for usuario in USERS_LIST:
         if usuario[2] == nickname:
             print 'Registrando ' + usuario[2] + '...'

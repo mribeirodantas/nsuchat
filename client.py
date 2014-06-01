@@ -102,9 +102,6 @@ if __name__ == "__main__":
                             '\nClient Application Protocol Version: ' +\
                                                                  str(VERSION)
                             sys.exit()
-                    elif data[0] == '$':
-                        sys.stdout.write(data[1:])
-                        prompt()
                     # First Symmetrically encrypted Data Unit
                     # Welcome Data Unit (Server ACK_SYMM)
                     else:
@@ -114,6 +111,9 @@ if __name__ == "__main__":
                             # First time you're gonna send something
                             print "Four-way handshake finished. Welcome " +\
                                   data[1:] + '.'
+                            prompt()
+                        elif data[0] == '$':
+                            sys.stdout.write(data[1:])
                             prompt()
                         else:
                             sys.stdout.write(data)
