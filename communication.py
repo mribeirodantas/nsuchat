@@ -121,7 +121,7 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                 wassup(sockfd, MAX_CONN_REQUEST, MAX_NICK_SIZE, MAX_MSG_LENGTH,
            VERSION)
 
-                print 'Client (%s, %s) connected' % addr
+                print '\nClient (%s, %s) connected' % addr
 
             # Some incoming message from a client
             else:
@@ -153,9 +153,13 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                         strftime('[%H:%M:%S] ', gmtime()) + '<' +
                        nickname + '> ' + data, server_socket)
                 except:
-                    broadcast(sock, '\nClient (%s, %s) is offline\n' % addr,
-                                   server_socket)
-                    print 'Client (%s, %s) is offline' % addr
+                    for usuario in USERS_LIST:
+                            if str(sock.getpeername()[1]) == usuario[1]:
+                                nickname = usuario[2]
+                    broadcast(sock, '\n' +
+                        strftime('[%H:%M:%S] ', gmtime()) + '[' +
+                        nickname + '] ' + 'left the room\n.', server_socket)
+                    print nickname + ' (%s, %s) is offline' % addr
                     sock.close()
                     CONNECTION_LIST.remove(sock)
                     continue
@@ -251,7 +255,7 @@ def register(ip, socket_peername, nickname, symm_key, crc):
     USERS_LIST.append((ip, socket_peername, nickname, symm_key))
     for usuario in USERS_LIST:
         if usuario[2] == nickname:
-            print '\nRegistrando ' + usuario[2] + '...'
+            print 'Registrando ' + usuario[2] + '...'
             print 'IP: ' + usuario[0]
             print 'Symmetric Key: ' + usuario[3]
             print 'Socket: ' + usuario[1]
