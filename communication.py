@@ -146,9 +146,12 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                                gmtime()) + '[%s] entered room\n' % nickname,
                                server_socket)
                     elif data:
+                        for usuario in USERS_LIST:
+                            if str(sock.getpeername()[1]) == usuario[1]:
+                                nickname = usuario[2]
                         broadcast(sock, '\r' +
                         strftime('[%H:%M:%S] ', gmtime()) + '<' +
-                       str(sock.getpeername()) + '> ' + data, server_socket)
+                       nickname + '> ' + data, server_socket)
                 except:
                     broadcast(sock, '\nClient (%s, %s) is offline' % addr,
                                    server_socket)
