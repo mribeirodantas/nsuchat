@@ -29,7 +29,8 @@ from time import gmtime, strftime
 from crypto import sha1, encrypt
 
 MAX_BUFFER = 1024      # Maximum allowed buffer
-CONNECTION_LIST = []  # List to keep track of socket descriptors
+CONNECTION_LIST = []   # List to keep track of socket descriptors
+USERS_LIST = []        # List of connected users
 
 
 # Returns a socket descriptor
@@ -135,7 +136,8 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                         symmetric_key = data.split(',')[1][:-40]
                         crc = data.split(',')[1][-40:]
                         # Register symm_key from this user
-                        register(addr[0], sock, nickname, symmetric_key, crc)
+                        register(addr[0], str(sock.getpeername()[1]), nickname,
+                                symmetric_key, crc)
                         ## Encrypt ACK_SYMM message and send it
                         acknowledge(sock, nickname, symmetric_key)
                         print '%s (%s) entrou no bate-papo.' %\
@@ -241,8 +243,13 @@ def server_message(target_socket, message):
                 CONNECTION_LIST.remove(target_socket)
 
 
-def register(ip, socket_descriptor, nickname, symm_key, crc):
-    print '\nRegistrar ' + nickname
-    print 'IP: ' + ip
-    print 'Symmetric Key: ' + symm_key
-    print 'SHA-1: ' + crc
+def register(ip, socket_peername, nickname, symm_key, crc):
+    # Check CRC (missing)
+    USERS_LIST.append((ip, socket_peername, nickname, symm_key))
+    for usuario in USERS_LIST:
+        if usuario[2] == nickname:
+            print '\nRegistrando ' + usuario[2] + '...'
+            print 'IP: ' + usuario[0]
+            print 'Symmetric Key: ' + usuario[3]
+            print 'Socket: ' + usuario[1]
+            print 'SHA-1: ' + crc
