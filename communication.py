@@ -122,10 +122,6 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
 
                 print 'Client (%s, %s) connected' % addr
 
-                broadcast(sockfd, '\n' + strftime('[%H:%M:%S] ',
-                               gmtime()) + '[%s:%s] entered room\n' % addr,
-                               server_socket)
-
             # Some incoming message from a client
             else:
                 # Data received from client, process it
@@ -144,12 +140,15 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                         acknowledge(sock, nickname, symmetric_key)
                         print '%s (%s) entrou no bate-papo.' %\
                               (nickname, addr[0])
+                        broadcast(sockfd, '\n' + strftime('[%H:%M:%S] ',
+                               gmtime()) + '[%s] entered room\n' % nickname,
+                               server_socket)
                     elif data:
                         broadcast(sock, '\r' +
                         strftime('[%H:%M:%S] ', gmtime()) + '<' +
                        str(sock.getpeername()) + '> ' + data, server_socket)
                 except:
-                    broadcast(sock, 'Client (%s, %s) is offline' % addr,
+                    broadcast(sock, '\nClient (%s, %s) is offline' % addr,
                                    server_socket)
                     print 'Client (%s, %s) is offline' % addr
                     sock.close()
