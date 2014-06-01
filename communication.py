@@ -49,12 +49,12 @@ def create_socket(SERVER_PORT, host='0.0.0.0', server=False):
         sys.exit()
     # Try to get local hostname
     try:
-        if host != '0.0.0.0':
-            print 'Resolving hostname..'
-            # gethostname() woud make it locally visible
+        if host == '0.0.0.0':
+            print 'Setting host as localhost...'
             host = socket.gethostname()
         else:
-            print 'Setting host as localhost..'
+            print 'Resolving hostname...'
+            host = socket.gethostbyname(host)
     except socket.gaierror:
         #could not resolve
         print 'Hostname could not be resolved. Exiting'
