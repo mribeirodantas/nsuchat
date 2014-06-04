@@ -25,7 +25,7 @@ import socket
 import select
 import sys
 from time import gmtime, strftime
-from crypto import sha1, encrypt
+from crypto import sha1, encrypt, decrypt
 import fcntl    # for get_mac
 import struct   # for get_mac
 
@@ -141,7 +141,7 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                         # Register symm_key from this user
                         register(addr[0], str(sock.fileno()), nickname,
                                 symmetric_key, crc)
-                        ## Encrypt ACK_SYMM message and send it
+                        # Encrypt ACK_SYMM message and send it
                         acknowledge(sock, nickname, symmetric_key)
                         print '%s (%s) entrou no bate-papo.' %\
                               (nickname, addr[0])
@@ -152,16 +152,18 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                         for usuario in USERS_LIST:
                             if str(sock.fileno()) == usuario[1]:
                                 nickname = usuario[2]
+                                symm_key = usuario[3]
+                                message = decrypt(data, symm_key)
                         broadcast(sock, '\r' +
                         strftime('[%H:%M:%S] ', gmtime()) + '<' +
-                       nickname + '> ' + data, server_socket)
+                       nickname + '> ' + message, server_socket)
                 except:
                     for usuario in USERS_LIST:
                             if str(sock.fileno()) == usuario[1]:
                                 nickname = usuario[2]
                     broadcast(sock, '\n' +
                         strftime('[%H:%M:%S] ', gmtime()) + '[' +
-                        nickname + '] ' + 'left the room\n.', server_socket)
+                        nickname + '] ' + 'left the room.\n', server_socket)
                     print nickname + ' (%s, %s) is offline' % addr
                     sock.close()
                     CONNECTION_LIST.remove(sock)
@@ -236,13 +238,13 @@ def broadcast(sock, message, server_socket):
         | TYPE |  MSG  |
         |  $   |       |
         |______|_______|"""
-    # There is no reason to encrypt such
-    #Do not send the message to server socket and the client who has
-    #sent the message
+    # Do not send the message to server socket and the client who has
+    # sent the message
     for socket in CONNECTION_LIST:
         if socket != server_socket and socket != sock:
             try:
                 for usuario in USERS_LIST:
+                    # The user for each specific socket
                     if usuario[1] == str(socket.fileno()):
                         symm_key = usuario[3]
                         message = '$' + message
@@ -250,7 +252,7 @@ def broadcast(sock, message, server_socket):
                         socket.send(msg_encrypted)
             except:
                 # broken socket connection may be, chat client pressed ctrl+c
-                #for example
+                # for example
                 socket.close()
                 CONNECTION_LIST.remove(socket)
 
@@ -259,14 +261,14 @@ def server_message(target_socket, message):
     """Takes a target socket and a message and sends a message to the specified
     socket. This function is supposed to be only used for server notificatoins
     to specific users. For all users, check broadcast.__doc__"""
-    #Send the message only to the target
+    # Send the message only to the target
     for socket in CONNECTION_LIST:
         if socket == target_socket:
             try:
                 socket.send(message)
             except:
                 # broken socket connection may be, chat client pressed ctrl+c
-                #for example
+                # for example
                 socket.close()
                 CONNECTION_LIST.remove(target_socket)
 

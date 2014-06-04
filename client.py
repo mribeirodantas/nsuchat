@@ -26,7 +26,7 @@ import socket
 import sys
 from time import gmtime, strftime
 from communication import synchronize_symm
-from crypto import decrypt, text2ascii, gen_symm_key
+from crypto import decrypt, encrypt, text2ascii, gen_symm_key
 from datetime import datetime
 
 VERSION = 0.1  # Client Application Protocol Version
@@ -121,14 +121,16 @@ if __name__ == "__main__":
                     # First Symmetrically encrypted Data Unit
                     # Welcome Data Unit (Server ACK_SYMM)
                     else:
-                        # Decrypt ACK_SYMM
+                        # Decrypt incoming message
                         data = decrypt(data, symm_key)
                         if data[0] == '#':
                             # First time you're gonna send something
                             print "Four-way handshake finished. Welcome " +\
                                   data[1:] + '.'
                             prompt()
+                        # Broadcast messages
                         elif data[0] == '$':
+                            # Entered/left room messages and public messages
                             sys.stdout.write(data[1:])
                             prompt()
                         else:
@@ -138,5 +140,6 @@ if __name__ == "__main__":
             #user entered a message
             else:
                 msg = sys.stdin.readline()
-                client_socket.send(msg)
+                message = encrypt(msg, symm_key)
+                client_socket.send(message)
                 prompt()
