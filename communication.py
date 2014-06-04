@@ -1,44 +1,45 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
-# Communication functions for zapzap.
+# This file is part of NSUChat, the Not So Unsafe Chat.
+# This module contains the functions related to establishing connections.
 #
 # Copyright (©) 2014 Marcel Ribeiro Dantas
 #
 # <mribeirodantas at fedoraproject.org>
 #
-# This file is part of zapzap.
-#
-# Zapzap is free software: you can redistribute it and/or modify
+# NSUChat is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
 #
-# Zapzap is distributed in the hope that it will be useful,
+# NSUChat is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with zapzap. If not, see <http://www.gnu.org/licenses/>.
+# along with NSUChat. If not, see <http://www.gnu.org/licenses/>.
 
 import socket
 import select
 import sys
 from time import gmtime, strftime
 from crypto import sha1, encrypt
+import fcntl    # for get_mac
+import struct   # for get_mac
 
 MAX_BUFFER = 1024      # Maximum allowed buffer
 CONNECTION_LIST = []   # List to keep track of socket descriptors
 USERS_LIST = []        # List of connected users
 
 
-# Returns a socket descriptor
-# The default host for hosting/connecting is localhost visible to everybody.
-# If the server flag is True, it will bind the host to the specified port.
-# If the server flag is False (default), it will connect to the specified
-# host:port
 def create_socket(SERVER_PORT, host='0.0.0.0', server=False):
+    """Returns a socket descriptor
+    The default host for hosting/connecting is localhost visible to everybody.
+    If the server flag is True, it will bind the host to the specified port.
+    If the server flag is False (default), it will connect to the specified
+    host:port"""
     # Try to create a TCP socket object named s
     try:
         print 'Creating socket..'
@@ -87,6 +88,8 @@ def create_socket(SERVER_PORT, host='0.0.0.0', server=False):
 # Listens for incoming connections
 def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                     MAX_MSG_LENGTH, VERSION):
+    """Takes a few arguments to start listening for connections to the chat
+    serer."""
 
     server_socket = create_socket(SERVER_PORT, server=True)
 
@@ -167,14 +170,15 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
     server_socket.close()
 
 
-#     --------------------------------------------------------------------
-#    | TYPE | MAX_CONN_REQUEST | MAX_NICK_SIZE | MAX_MSG_LENGTH | VERSION |
-#    |  *   |                  |               |                |         |
-#    |______|__________________|_______________|________________|_________|
-#    |                     ASSYMMETRIC PUBLIC KEY                         |
-#    |____________________________________________________________________|
 def wassup(client_socket, MAX_CONN_REQUEST, MAX_NICK_SIZE, MAX_MSG_LENGTH,
            VERSION):
+    """First Application Protocol Data Unit of the Four-Way Handshake.
+     --------------------------------------------------------------------
+    | TYPE | MAX_CONN_REQUEST | MAX_NICK_SIZE | MAX_MSG_LENGTH | VERSION |
+    |  *   |                  |               |                |         |
+    |______|__________________|_______________|________________|_________|
+    |                     ASSYMMETRIC PUBLIC KEY                         |
+    |____________________________________________________________________|"""
     wassup = '*,' + str(MAX_CONN_REQUEST) + ',' + str(MAX_NICK_SIZE) + ',' +\
     str(MAX_MSG_LENGTH) + ',' + VERSION
     server_message(client_socket, wassup)
@@ -183,25 +187,27 @@ def wassup(client_socket, MAX_CONN_REQUEST, MAX_NICK_SIZE, MAX_MSG_LENGTH,
 # *** Falta utilizar chave assimétrica enviada no wassup
 # para criptografar esse pacote. E a partir deste, teremos tudo
 # criptografado com a simétrica
-#     ----------------------------
-#    | TYPE | NICKNAME | SYMM_KEY |
-#    |  !   |          |          |
-#    |______|__________|__________|
-#    |           SHA-1            |
-#    |____________________________|
 def synchronize_symm(nickname, s_k):
+    """Application Data Protocol sent by client to synchronize its Symmetric Key
+    with the server.
+     ----------------------------
+    | TYPE | NICKNAME | SYMM_KEY |
+    |  !   |          |          |
+    |______|__________|__________|
+    |           SHA-1            |
+    |____________________________|"""
     apdu = '!' + nickname + ',' + s_k
     apdu_w_hash = apdu + sha1(apdu)
 
     return apdu_w_hash
 
 
-# First message encrypted with symm_key
-#     -------------------------
-#    | TYPE | NICKNAME | SHA-1 |
-#    |  #   |          |       |
-#    |______|__________|_______|
 def acknowledge(client_socket, nickname, symm_key):
+    """First message encrypted with symm_key
+         -------------------------
+        | TYPE | NICKNAME | SHA-1 |
+        |  #   |          |       |
+        |______|__________|_______|"""
     apdu = '#' + nickname
     encrypted_apdu = encrypt(apdu, symm_key)
 
@@ -212,17 +218,25 @@ def acknowledge(client_socket, nickname, symm_key):
 #    | TYPE | SHA-1 |
 #    |  3   |       |
 #    |______|_______|
-def request_nicklist():
-    pass
+def request_nicklist(socket):
+    """Request string list of users registered.
+         --------------
+        | TYPE | SHA-1 |
+        |  3   |       |
+        |______|_______|"""
+    nicklist = ['|']
+    for usuario in USERS_LIST:
+        nicklist.append(usuario[1])
+    server_message(socket, nicklist)
 
 
-#     --------------
-#    | TYPE |  MSG  |
-#    |  $   |       |
-#    |______|_______|
-# Function to broadcast chat messages to all connected clients
-# There is no reason to encrypt such
 def broadcast(sock, message, server_socket):
+    """Function to broadcast chat messages to all connected clients
+         --------------
+        | TYPE |  MSG  |
+        |  $   |       |
+        |______|_______|"""
+    # There is no reason to encrypt such
     #Do not send the message to server socket and the client who has
     #sent the message
     for socket in CONNECTION_LIST:
@@ -242,6 +256,9 @@ def broadcast(sock, message, server_socket):
 
 
 def server_message(target_socket, message):
+    """Takes a target socket and a message and sends a message to the specified
+    socket. This function is supposed to be only used for server notificatoins
+    to specific users. For all users, check broadcast.__doc__"""
     #Send the message only to the target
     for socket in CONNECTION_LIST:
         if socket == target_socket:
@@ -255,6 +272,8 @@ def server_message(target_socket, message):
 
 
 def register(ip, socket_id, nickname, symm_key, crc):
+    """Registers a new identified user in the chat server, along with his
+    symmetric key for future encryption/decryption."""
     # Check CRC (missing)
     USERS_LIST.append((ip, socket_id, nickname, symm_key))
     for usuario in USERS_LIST:
@@ -264,3 +283,12 @@ def register(ip, socket_id, nickname, symm_key, crc):
             print 'Symmetric Key: ' + usuario[3]
             print 'Socket: ' + usuario[1]
             print 'SHA-1: ' + crc
+
+
+def get_mac(ifname):
+    """Takes an interface name ifname and returns a string containing its
+    MAC address."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    info = fcntl.ioctl(s.fileno(), 0x8927, struct.pack('256s', ifname[:15]))
+    return ''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1]
+#print getHwAddr('em1')

@@ -1,26 +1,24 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
-# Zapzap server configuration
+# This file is part of NSUChat, the Not So Unsafe Chat.
 #
 # Copyright (©) 2014 Marcel Ribeiro Dantas
 #
 # <mribeirodantas at fedoraproject.org>
 #
-# This file is part of zapzap.
-#
-# Zapzap is free software: you can redistribute it and/or modify
+# NSUChat is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
 #
-# Zapzap is distributed in the hope that it will be useful,
+# NSUChat is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with zapzap. If not, see <http://www.gnu.org/licenses/>.
+# along with NSUChat. If not, see <http://www.gnu.org/licenses/>.
 
 from communication import listen_for_conn
 import sys

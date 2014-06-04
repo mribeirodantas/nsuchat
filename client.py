@@ -1,26 +1,24 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
-# Zapzap client
+# This file is part of NSUChat, the Not So Unsafe Chat.
 #
 # Copyright (©) 2014 Marcel Ribeiro Dantas
 #
 # <mribeirodantas at fedoraproject.org>
 #
-# This file is part of zapzap.
-#
-# Zapzap is free software: you can redistribute it and/or modify
+# NSUChat is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
 #
-# Zapzap is distributed in the hope that it will be useful,
+# NSUChat is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with zapzap. If not, see <http://www.gnu.org/licenses/>.
+# along with NSUChat. If not, see <http://www.gnu.org/licenses/>.
 
 from communication import create_socket
 import select
@@ -44,7 +42,7 @@ if __name__ == "__main__":
         sys.exit()
     else:
         try:
-            # If server was informed
+            # If server was informed in the commandline argument
             if len(sys.argv[2].split(':')) == 2:
                 serverPort = int(sys.argv[2].split(':')[1])
                 server = sys.argv[2].split(':')[0]
