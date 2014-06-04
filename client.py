@@ -37,33 +37,51 @@ def prompt():
     sys.stdout.flush()
 
 if __name__ == "__main__":
-    if(len(sys.argv) != 3):
+    if len(sys.argv) == 1:
+        try:
+            print "Please, answer the following questions."
+            nickname = raw_input("Nickname: ")
+            server_ip = raw_input("Server IP/Name: ")
+            if server_ip == '':
+                print 'Using localhost...'
+                server_ip = '0.0.0.0'
+            serverPort = int(raw_input("Server Port: "))
+        except KeyboardInterrupt:
+            print "\nQuitting.."
+            sys.exit()
+    elif len(sys.argv) != 3:
         print 'Usage: python client.py nickname server:port'
         sys.exit()
     else:
         try:
+            nickname = sys.argv[1]
+            serverPort = sys.argv[2]
             # If server was informed in the commandline argument
-            if len(sys.argv[2].split(':')) == 2:
-                serverPort = int(sys.argv[2].split(':')[1])
-                server = sys.argv[2].split(':')[0]
+            if len(serverPort.split(':')) == 2:
+                serverPort = int(serverPort.split(':')[1])
+                server_ip = serverPort.split(':')[0]
             else:
-                serverPort = int(sys.argv[2])
-                server = '0.0.0.0'
+                serverPort = int(serverPort)
+                server_ip = '0.0.0.0'
         except ValueError:
             print 'Server port must be an integer.'
             sys.exit()
+
     if serverPort > 65535:
         print 'Server port must be lower than 65535.'
     else:
-        client_socket = create_socket(serverPort, server)
+        client_socket = create_socket(serverPort, server_ip)
         print 'Connected to the chat server'
 
     while True:
-        socket_list = [sys.stdin, client_socket]
-        # Get the list sockets which are readable
-        read_sockets, write_sockets, error_sockets = select.select(
+        try:
+            socket_list = [sys.stdin, client_socket]
+            # Get the list sockets which are readable
+            read_sockets, write_sockets, error_sockets = select.select(
                                                         socket_list, [], [])
-
+        except KeyboardInterrupt:
+            print "\nQuitting..."
+            sys.exit()
         for sock in read_sockets:
             #incoming message from remote server
             if sock == client_socket:
@@ -82,14 +100,14 @@ if __name__ == "__main__":
                         print 'Maximum message length: ' + data[3]
                         print 'Protocol version: ' + data[4] + '\n'
                         if data[4] == str(VERSION):
-                            if len(sys.argv[1]) <= int(data[2]):
+                            if len(nickname) <= int(data[2]):
                                 # synchronize Data Unit (Client SYN_SYMM)
                                 ip = socket.gethostbyname(socket.gethostname())
                                 seconds = datetime.now().second
-                                ascii = text2ascii(sys.argv[1])
+                                ascii = text2ascii(nickname)
                                 symm_key = gen_symm_key(ip, seconds, ascii)
                                 client_socket.send(
-                                    synchronize_symm(sys.argv[1], symm_key)
+                                    synchronize_symm(nickname, symm_key)
                                     )
                             else:
                                 print 'Sorry, your nickname is too long.\n'
