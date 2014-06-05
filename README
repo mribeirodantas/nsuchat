@@ -1,0 +1,76 @@
+1. O servidor é iniciado chamando listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE, MAX_MSG_LENGTH, VERSION)
+print('\n')
+1.1 listen_for_conn cria um socket TCP com create_socket(SERVER_PORT, server=True) que por sua vez faz o binding, etc
+1.2 Começa a ouvir no máximo MAX_CONN_REQUEST conexões com server_socket.listen(MAX_CONN_REQUEST)
+1.3 Adiciona o socket criado para receber conexões na lista de sockets com CONNECTION_LIST.append(server_socket)
+
+2. Na lista de sockets para serem lidos, é encontrado o próprio server_socket. Isto sinaliza um connection request
+2.1 Aceita a conexão com sockfd, addr = server_socket.accept()
+2.2 Adiciona o socket do cliente na lista de sockets com CONNECTION_LIST.append(sockfd)
+2.3 Envia o primeiro bloco de dados (wassup) para iniciar o Four-Way Handshake com informações do servidor:
+    wassup(sockfd, MAX_CONN_REQUEST, MAX_NICK_SIZE, MAX_MSG_LENGTH, VERSION)
+     --------------------------------------------------------------------
+    | TYPE | MAX_CONN_REQUEST | MAX_NICK_SIZE | MAX_MSG_LENGTH | VERSION |
+    |  *   |                  |               |                |         |
+    |______|__________________|_______________|________________|_________|
+    |                     ASSYMMETRIC PUBLIC KEY                         |
+    |____________________________________________________________________|
+
+Exemplo: '*','32','6','100','0.1',assymm_key
+
+2.4 De modo similar, o cliente tem uma lista de sockets (por hora apenas com o client_socket) para serem lidos/escritos
+2.5 Se na lista de sockets para leitura é encontrado o client_socket, é porque tem uma mensagem para ele.
+2.6 Ele checa se o primeiro caracter da mensagem é '*'.
+2.6.1 Se for, ele checa se a versão do protocolo de aplicação é igual à do cliente e checa se o tamanho do nick informado é aceitável
+2.6.2 Se os quesitos acima citados passarem no teste, ele começa a montar o segundo bloco de dados (SYN_SYMM) para sincronizar a chave
+      simétrica a qual será responsável pela criptografia a partir de agora.
+      client_socket.send(synchronize_symm(nickname, symm_key))
+         ----------------------------
+        | TYPE | NICKNAME | SYMM_KEY |
+        |  !   |          |          |
+        |______|__________|__________|
+        |           SHA-1            |
+        |____________________________|
+
+Exemplo: '!Marcel19216811045555557554949525757494849494856a532eaf6cafad601e9cf5f0b648fcd1afd20ce8d'
+                    IP     SEC          ASCII(nickname)                 SHA-1
+
+2.7 Do outro lado, o servidor recebe uma mensagem e checa se o primeiro caracter é '!'.
+2.7.1 Se for, ele registra na lista de usuários conectados o usuário com register(addr[0], str(sock.fileno()), nickname, symmetric_key, crc)
+      É com esses registros que o servidor sabe a chave para decriptar a mensagem do remetente e encriptar para o destino.
+2.7.2 Após o registro, ele envia o terceiro bloco de dados (ACK_SYMM) que é a primeira mensagem criptografada com chave simétrica desde o início
+      da conexão, com acknowledge(sock, nickname, symmetric_key)
+         -------------------------
+        | TYPE | NICKNAME | SHA-1 |
+        |  #   |          |       |
+        |______|__________|_______|
+
+Exemplo: encrypt('#Marcel') + str(sha1(encrypt('#Marcel')))
+
+2.8 Chegando o bloco de dados no cliente, se não for '*' é porque já está criptografado. Então ele decripta com a sua chave simétrica.
+2.8.1 O primeiro caracter é '#'? Se for, é a mensagem de boas vindas. O usuário de fato entrou no bate-papo. Irá aparecer para o cliente:
+    Four-way handshake finished. Welcome Marcel
+E o servidor irá imprimir na tela:
+    Marcel entered room
+
+2.9 Para o servidor, a partir de então se não encaixar nos casos já citados, tudo será dados e ele irá:
+2.9.1 Pelo número identificador do socket procurar na lista de usuários registrados, quem é que está enviando.
+2.9.2 Chamar a função broadcast com broadcast(sock, '\r' + strftime('[%H:%M:%S] ', gmtime()) + '<' + nickname + '> ' + data, server_socket)
+2.9.3 A função broadcast busca por todos os usuários conectados e para todos exceto remetente/servidor ele monta um bloco de dados (brdcast):
+         --------------
+        | TYPE |  MSG  |
+        |  $   |       |
+        |______|_______|
+
+Exemplo: '$Oi, tudo bem?'
+
+2.9.4 Encripta de acordo com a chave simétrica do usuário em questão e envia
+2.10 No cliente, o pacote é descriptado, verifica-se que o primeiro caracter é '$' e que portanto a partir deste caracter o resto deve ser
+     impresso na tela.
+
+
+Melhorias:
+- .ascii_uppercas para todos os nomes no USERS_LIST
+- Integrar com a GUI
+- checar SHA-1
+- Utilizar MAC address em vez de IP
