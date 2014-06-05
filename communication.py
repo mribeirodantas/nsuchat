@@ -139,15 +139,19 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                         symmetric_key = data.split(',')[1][:-40]
                         crc = data.split(',')[1][-40:]
                         # Register symm_key from this user
-                        register(addr[0], str(sock.fileno()), nickname,
-                                symmetric_key, crc)
-                        # Encrypt ACK_SYMM message and send it
-                        acknowledge(sock, nickname, symmetric_key)
-                        print '%s (%s) entered room.' %\
-                              (nickname, addr[0])
-                        broadcast(sockfd, '\n' + strftime('[%H:%M:%S] ',
-                               gmtime()) + '[%s] entered room\n' % nickname,
-                               server_socket)
+                        if register(addr[0], str(sock.fileno()), nickname,
+                                symmetric_key, crc) is True:
+                            # Encrypt ACK_SYMM message and send it
+                            acknowledge(sock, nickname, symmetric_key)
+                            print '%s (%s) entered room.' %\
+                                  (nickname, addr[0])
+                            broadcast(sockfd, '\n' + strftime('[%H:%M:%S] ',
+                                   gmtime()) + '[%s] entered room\n' % nickname,
+                                   server_socket)
+                        else:
+                            print 'já tem gente'
+                            msg = encrypt('##' + nickname, symmetric_key)
+                            server_notice(sock, msg)
                     elif data:
                         for usuario in USERS_LIST:
                             if str(sock.fileno()) == usuario[1]:
@@ -293,14 +297,23 @@ def register(ip, socket_id, nickname, symm_key, crc):
     """Registers a new identified user in the chat server, along with his
     symmetric key for future encryption/decryption."""
     # Check CRC (missing)
-    USERS_LIST.append((ip, socket_id, nickname, symm_key))
+    found = False
     for usuario in USERS_LIST:
         if usuario[2] == nickname:
-            print 'Registering ' + usuario[2] + '...'
-            print 'IP: ' + usuario[0]
-            print 'Symmetric Key: ' + usuario[3]
-            print 'Socket: ' + usuario[1]
-            print 'SHA-1: ' + crc
+            found = True
+    if not found:
+        USERS_LIST.append((ip, socket_id, nickname, symm_key))
+        for usuario in USERS_LIST:
+            if usuario[2] == nickname:
+                print 'Registering ' + usuario[2] + '...'
+                print 'IP: ' + usuario[0]
+                print 'Symmetric Key: ' + usuario[3]
+                print 'Socket: ' + usuario[1]
+                print 'SHA-1: ' + crc
+
+                return True
+    else:
+        return False
 
 
 def remove_user(socket):

@@ -30,6 +30,8 @@ from crypto import decrypt, encrypt, text2ascii, gen_symm_key
 from datetime import datetime
 
 VERSION = 0.1  # Client Application Protocol Version
+nickname = ''
+serverPort = ''
 
 
 def prompt(brdcast=True, msg=''):
@@ -45,12 +47,15 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         try:
             print "Please, answer the following questions."
-            nickname = raw_input("Nickname: ")
+            while len(nickname) == 0 or nickname[0] == ' ':
+                nickname = raw_input("Nickname: ")
             server_ip = raw_input("Server IP/Name: ")
             if server_ip == '':
                 print 'Using localhost...'
                 server_ip = '0.0.0.0'
-            serverPort = int(raw_input("Server Port: "))
+            while len(serverPort) == '' or serverPort == '':
+                serverPort = raw_input("Server Port: ")
+            serverPort = int(serverPort)
         except KeyboardInterrupt:
             print "\nQuitting.."
             sys.exit()
@@ -129,6 +134,11 @@ if __name__ == "__main__":
                         # Decrypt incoming message
                         data = decrypt(data, symm_key)
                         if data[0] == '#':
+                            if data[1] == '#':
+                                print 'There is already someone logged in ' +\
+                                      'as ' + data[2:]
+                                print 'Quitting...'
+                                sys.exit()
                             # First time you're gonna send something
                             print "Four-way handshake finished. Welcome " +\
                                   data[1:] + '.'
@@ -147,7 +157,7 @@ if __name__ == "__main__":
                                 prompt(False, 'Users: ' + data[1:] + '\n')
                                 prompt()
                         else:
-                            sys.stdout.write(data)
+                            sys.stdout.write(data[1:])
                             prompt()
 
             #user entered a message
