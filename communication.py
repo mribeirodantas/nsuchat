@@ -182,6 +182,44 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                                 data = '^' + from_nickname + ',' + msg
                                 encrypted_data = encrypt(data, s_k)
                                 server_notice(dest_socket, encrypted_data)
+                            # Switch nickname
+                            elif message[:6] == '/nick ':
+                                new_nick = message[5:].split(' ')[1][0:-1]
+                                for user in USERS_LIST:
+                                    # Looking for user in USERS_LIST
+                                    if (user[1] == str(sock.fileno()) and
+                                        user[2] == nickname):
+                                            # Register with new nickname
+                                            # and check if there is someone
+                                            # already with this nickname
+                                            if register(user[0],
+                                                  str(sock.fileno()), new_nick,
+                                                  symmetric_key, crc) is True:
+                                                print '%s known as %s.' %\
+                                                  (nickname, new_nick)
+                                                # Remove o anterior
+                                                # Isto porque tupla é imutável
+                                                for index, user in \
+                                                enumerate(USERS_LIST):
+                                                    if user[2] == nickname:
+                                                        del USERS_LIST[index]
+                                                broadcast(sock, '\n' +
+                                                strftime('[%H:%M:%S] ',
+                                                gmtime()) + nickname +
+                                                'now known as' + new_nick +
+                                                '\n', server_socket)
+                                            else:
+                                                pass
+                                                # Falta tratar quando tem gente
+                                                # com este nick
+                                                #msg = encrypt('##' + nickname, symmetric_key)
+                                                #server_notice(sock, msg)
+                                broadcast(sock, '\n' +
+                                strftime('[%H:%M:%S] ', gmtime()) + '[' +
+                                nickname + '] ' + 'is now known as ' +
+                                new_nick + '.\n', server_socket)
+
+                                print nickname + ' (%s, %s) is removed' % addr
                             else:
                                 reply_error = '||Command not recognized.\n'
                                 encrypted_reply = encrypt(reply_error, symm_key)

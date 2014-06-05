@@ -168,7 +168,7 @@ if __name__ == "__main__":
                                     pos = i
                                     break
                             prompt(False, '[Private message from ' + data[1:pos]
-                            + '] ' + data[pos+1:])
+                            + '] ' + data[pos + 1:])
                             prompt()
                         else:
                             sys.stdout.write(data[1:])
