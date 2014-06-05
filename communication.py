@@ -175,6 +175,7 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                         strftime('[%H:%M:%S] ', gmtime()) + '[' +
                         nickname + '] ' + 'left the room.\n', server_socket)
                     print nickname + ' (%s, %s) is offline' % addr
+                    remove_user(str(sock.fileno()))
                     sock.close()
                     CONNECTION_LIST.remove(sock)
                     continue
@@ -268,6 +269,7 @@ def broadcast(sock, message, server_socket):
                 # for example
                 socket.close()
                 CONNECTION_LIST.remove(socket)
+                remove_user(str(socket.fileno()))
 
 
 def server_notice(target_socket, message):
@@ -284,6 +286,7 @@ def server_notice(target_socket, message):
                 # for example
                 socket.close()
                 CONNECTION_LIST.remove(target_socket)
+                remove_user(str(target_socket.fileno()))
 
 
 def register(ip, socket_id, nickname, symm_key, crc):
@@ -298,6 +301,12 @@ def register(ip, socket_id, nickname, symm_key, crc):
             print 'Symmetric Key: ' + usuario[3]
             print 'Socket: ' + usuario[1]
             print 'SHA-1: ' + crc
+
+
+def remove_user(socket):
+    for index, usuario in enumerate(USERS_LIST):
+        if usuario[1] == socket:
+            del USERS_LIST[index]
 
 
 def get_mac(ifname):

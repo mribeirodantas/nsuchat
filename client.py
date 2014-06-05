@@ -159,6 +159,6 @@ if __name__ == "__main__":
                     # avoid <you> command <you>
                     if msg[0] != '/':
                         prompt()
-                except KeyboardInterrupt:
+                except (KeyboardInterrupt, IndexError):
                     print '\nQuitting...'
                     sys.exit()
