@@ -143,7 +143,7 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                                 symmetric_key, crc)
                         # Encrypt ACK_SYMM message and send it
                         acknowledge(sock, nickname, symmetric_key)
-                        print '%s (%s) entrou no bate-papo.' %\
+                        print '%s (%s) entered room.' %\
                               (nickname, addr[0])
                         broadcast(sockfd, '\n' + strftime('[%H:%M:%S] ',
                                gmtime()) + '[%s] entered room\n' % nickname,
@@ -154,9 +154,19 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                                 nickname = usuario[2]
                                 symm_key = usuario[3]
                                 message = decrypt(data, symm_key)
-                        broadcast(sock, '\r' +
-                        strftime('[%H:%M:%S] ', gmtime()) + '<' +
-                       nickname + '> ' + message, server_socket)
+                        if message[0] == '/':
+                            if message[:9] == '/nicklist':
+                                nicklist = request_nicklist()
+                                encrypted_nicklist = encrypt(nicklist, symm_key)
+                                server_notice(sock, encrypted_nicklist)
+                            else:
+                                reply_error = '||Command not recognized.\n'
+                                encrypted_reply = encrypt(reply_error, symm_key)
+                                server_notice(sock, encrypted_reply)
+                        else:
+                            broadcast(sock, '\r' +
+                            strftime('[%H:%M:%S] ', gmtime()) + '<' +
+                           nickname + '> ' + message, server_socket)
                 except:
                     for usuario in USERS_LIST:
                             if str(sock.fileno()) == usuario[1]:
@@ -183,7 +193,7 @@ def wassup(client_socket, MAX_CONN_REQUEST, MAX_NICK_SIZE, MAX_MSG_LENGTH,
     |____________________________________________________________________|"""
     wassup = '*,' + str(MAX_CONN_REQUEST) + ',' + str(MAX_NICK_SIZE) + ',' +\
     str(MAX_MSG_LENGTH) + ',' + VERSION
-    server_message(client_socket, wassup)
+    server_notice(client_socket, wassup)
 
 
 # *** Falta utilizar chave assimétrica enviada no wassup
@@ -213,23 +223,26 @@ def acknowledge(client_socket, nickname, symm_key):
     apdu = '#' + nickname
     encrypted_apdu = encrypt(apdu, symm_key)
 
-    server_message(client_socket, encrypted_apdu)
+    server_notice(client_socket, encrypted_apdu)
 
 
 #     --------------
 #    | TYPE | SHA-1 |
 #    |  3   |       |
 #    |______|_______|
-def request_nicklist(socket):
+def request_nicklist():
     """Request string list of users registered.
          --------------
         | TYPE | SHA-1 |
-        |  3   |       |
+        |  |   |       |
         |______|_______|"""
     nicklist = ['|']
     for usuario in USERS_LIST:
-        nicklist.append(usuario[1])
-    server_message(socket, nicklist)
+        nicklist.append(usuario[2])
+    # Converts list of strings to a single string
+    nicklist = (', ').join(nicklist)
+    nicklist = nicklist[0] + nicklist[3:]
+    return nicklist
 
 
 def broadcast(sock, message, server_socket):
@@ -257,7 +270,7 @@ def broadcast(sock, message, server_socket):
                 CONNECTION_LIST.remove(socket)
 
 
-def server_message(target_socket, message):
+def server_notice(target_socket, message):
     """Takes a target socket and a message and sends a message to the specified
     socket. This function is supposed to be only used for server notificatoins
     to specific users. For all users, check broadcast.__doc__"""
@@ -280,7 +293,7 @@ def register(ip, socket_id, nickname, symm_key, crc):
     USERS_LIST.append((ip, socket_id, nickname, symm_key))
     for usuario in USERS_LIST:
         if usuario[2] == nickname:
-            print 'Registrando ' + usuario[2] + '...'
+            print 'Registering ' + usuario[2] + '...'
             print 'IP: ' + usuario[0]
             print 'Symmetric Key: ' + usuario[3]
             print 'Socket: ' + usuario[1]

@@ -32,9 +32,14 @@ from datetime import datetime
 VERSION = 0.1  # Client Application Protocol Version
 
 
-def prompt():
-    sys.stdout.write(strftime('[%H:%M:%S] ', gmtime()) + '<You> ')
-    sys.stdout.flush()
+def prompt(brdcast=True, msg=''):
+    if brdcast is True:
+        sys.stdout.write(strftime('[%H:%M:%S] ', gmtime()) + '<You> ')
+        sys.stdout.flush()
+    else:
+        sys.stdout.write(strftime('[%H:%M:%S] ', gmtime()) + '[Server] '
+                         + msg)
+        sys.stdout.flush()
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
@@ -133,13 +138,27 @@ if __name__ == "__main__":
                             # Entered/left room messages and public messages
                             sys.stdout.write(data[1:])
                             prompt()
+                        # Nicklist reply
+                        elif data[0] == '|':
+                            if data[1] == '|':
+                                prompt(False, data[2:])
+                                prompt()
+                            else:
+                                prompt(False, 'Users: ' + data[1:] + '\n')
+                                prompt()
                         else:
                             sys.stdout.write(data)
                             prompt()
 
             #user entered a message
             else:
-                msg = sys.stdin.readline()
-                message = encrypt(msg, symm_key)
-                client_socket.send(message)
-                prompt()
+                try:
+                    msg = sys.stdin.readline()
+                    message = encrypt(msg, symm_key)
+                    client_socket.send(message)
+                    # avoid <you> command <you>
+                    if msg[0] != '/':
+                        prompt()
+                except KeyboardInterrupt:
+                    print '\nQuitting...'
+                    sys.exit()
