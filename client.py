@@ -163,8 +163,12 @@ if __name__ == "__main__":
                                        data[1:] + '\n')
                                 prompt()
                         elif data[0] == '^':
-                            prompt(False, '[Private message from ' + data[1:6]
-                            + '] ' + data[8:])
+                            for i, char in enumerate(data):
+                                if char == ',':
+                                    pos = i
+                                    break
+                            prompt(False, '[Private message from ' + data[1:pos]
+                            + '] ' + data[pos+1:])
                             prompt()
                         else:
                             sys.stdout.write(data[1:])

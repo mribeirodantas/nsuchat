@@ -152,10 +152,10 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                             msg = encrypt('##' + nickname, symmetric_key)
                             server_notice(sock, msg)
                     elif data:
-                        for usuario in USERS_LIST:
-                            if str(sock.fileno()) == usuario[1]:
-                                nickname = usuario[2]
-                                symm_key = usuario[3]
+                        for user in USERS_LIST:
+                            if str(sock.fileno()) == user[1]:
+                                nickname = user[2]
+                                symm_key = user[3]
                                 message = decrypt(data, symm_key)
                         if message[0] == '/':
                             # Requests list of connected users
@@ -169,16 +169,16 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                                 to_nickname = message[5:].split(' ')[0]
 
                                 # What is the target socket?
-                                for usuario in USERS_LIST:
-                                    if usuario[2] == to_nickname:
+                                for user in USERS_LIST:
+                                    if user[2] == to_nickname:
                                         # Fond target socket ID
-                                        dest_socket_id = usuario[1]
-                                        s_k = usuario[3]
+                                        dest_socket_id = user[1]
+                                        s_k = user[3]
                                 for socket in CONNECTION_LIST:
                                     if str(socket.fileno()) == dest_socket_id:
                                         # Found socket descriptor
                                         dest_socket = socket
-                                msg = message[5 + len(nickname):]
+                                msg = message[5 + len(to_nickname):]
                                 data = '^' + from_nickname + ',' + msg
                                 encrypted_data = encrypt(data, s_k)
                                 server_notice(dest_socket, encrypted_data)
@@ -191,9 +191,9 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                             strftime('[%H:%M:%S] ', gmtime()) + '<' +
                            nickname + '> ' + message, server_socket)
                 except:
-                    for usuario in USERS_LIST:
-                            if str(sock.fileno()) == usuario[1]:
-                                nickname = usuario[2]
+                    for user in USERS_LIST:
+                            if str(sock.fileno()) == user[1]:
+                                nickname = user[2]
                     broadcast(sock, '\n' +
                         strftime('[%H:%M:%S] ', gmtime()) + '[' +
                         nickname + '] ' + 'left the room.\n', server_socket)
@@ -261,8 +261,8 @@ def request_nicklist():
         |  |   |       |
         |______|_______|"""
     nicklist = ['|']
-    for usuario in USERS_LIST:
-        nicklist.append(usuario[2])
+    for user in USERS_LIST:
+        nicklist.append(user[2])
     # Converts list of strings to a single string
     nicklist = (', ').join(nicklist)
     nicklist = nicklist[0] + nicklist[3:]
@@ -280,10 +280,10 @@ def broadcast(sock, message, server_socket):
     for socket in CONNECTION_LIST:
         if socket != server_socket and socket != sock:
             try:
-                for usuario in USERS_LIST:
+                for user in USERS_LIST:
                     # The user for each specific socket
-                    if usuario[1] == str(socket.fileno()):
-                        symm_key = usuario[3]
+                    if user[1] == str(socket.fileno()):
+                        symm_key = user[3]
                         message = '$' + message
                         msg_encrypted = encrypt(message, symm_key)
                         socket.send(msg_encrypted)
@@ -317,17 +317,17 @@ def register(ip, socket_id, nickname, symm_key, crc):
     symmetric key for future encryption/decryption."""
     # Check CRC (missing)
     found = False
-    for usuario in USERS_LIST:
-        if usuario[2] == nickname:
+    for user in USERS_LIST:
+        if user[2] == nickname:
             found = True
     if not found:
         USERS_LIST.append((ip, socket_id, nickname, symm_key))
-        for usuario in USERS_LIST:
-            if usuario[2] == nickname:
-                print 'Registering ' + usuario[2] + '...'
-                print 'IP: ' + usuario[0]
-                print 'Symmetric Key: ' + usuario[3]
-                print 'Socket: ' + usuario[1]
+        for user in USERS_LIST:
+            if user[2] == nickname:
+                print 'Registering ' + user[2] + '...'
+                print 'IP: ' + user[0]
+                print 'Symmetric Key: ' + user[3]
+                print 'Socket: ' + user[1]
                 print 'SHA-1: ' + crc
 
                 return True
@@ -336,8 +336,8 @@ def register(ip, socket_id, nickname, symm_key, crc):
 
 
 def remove_user(socket):
-    for index, usuario in enumerate(USERS_LIST):
-        if usuario[1] == socket:
+    for index, user in enumerate(USERS_LIST):
+        if user[1] == socket:
             del USERS_LIST[index]
 
 
