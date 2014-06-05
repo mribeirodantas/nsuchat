@@ -34,14 +34,19 @@ nickname = ''
 serverPort = ''
 
 
-def prompt(brdcast=True, msg=''):
+def prompt(brdcast=True, who='', msg=''):
     if brdcast is True:
         sys.stdout.write(strftime('[%H:%M:%S] ', gmtime()) + '<You> ')
         sys.stdout.flush()
     else:
-        sys.stdout.write(strftime('[%H:%M:%S] ', gmtime()) + '[Server] '
+        if '[Server]' in who:
+            sys.stdout.write(strftime('[%H:%M:%S] ', gmtime()) + who
                          + msg)
-        sys.stdout.flush()
+            sys.stdout.flush()
+        else:
+            sys.stdout.write(strftime('\n[%H:%M:%S] ', gmtime()) + who
+                         + msg)
+            sys.stdout.flush()
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
@@ -154,8 +159,13 @@ if __name__ == "__main__":
                                 prompt(False, data[2:])
                                 prompt()
                             else:
-                                prompt(False, 'Users: ' + data[1:] + '\n')
+                                prompt(False, '[Server] ', 'Users: ' +
+                                       data[1:] + '\n')
                                 prompt()
+                        elif data[0] == '^':
+                            prompt(False, '[Private message from ' + data[1:6]
+                            + '] ' + data[8:])
+                            prompt()
                         else:
                             sys.stdout.write(data[1:])
                             prompt()
@@ -166,8 +176,10 @@ if __name__ == "__main__":
                     msg = sys.stdin.readline()
                     message = encrypt(msg, symm_key)
                     client_socket.send(message)
-                    # avoid <you> command <you>
-                    if msg[0] != '/':
+                    # If a command has just been run, do not show prompt
+                    if msg[:2] == '/n':
+                        pass
+                    else:
                         prompt()
                 except (KeyboardInterrupt, IndexError):
                     print '\nQuitting...'

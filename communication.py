@@ -149,7 +149,6 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                                    gmtime()) + '[%s] entered room\n' % nickname,
                                    server_socket)
                         else:
-                            print 'já tem gente'
                             msg = encrypt('##' + nickname, symmetric_key)
                             server_notice(sock, msg)
                     elif data:
@@ -159,10 +158,30 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                                 symm_key = usuario[3]
                                 message = decrypt(data, symm_key)
                         if message[0] == '/':
+                            # Requests list of connected users
                             if message[:9] == '/nicklist':
                                 nicklist = request_nicklist()
                                 encrypted_nicklist = encrypt(nicklist, symm_key)
                                 server_notice(sock, encrypted_nicklist)
+                            # Private message
+                            elif message[:4] == '/msg':
+                                from_nickname = nickname
+                                to_nickname = message[5:].split(' ')[0]
+
+                                # What is the target socket?
+                                for usuario in USERS_LIST:
+                                    if usuario[2] == to_nickname:
+                                        # Fond target socket ID
+                                        dest_socket_id = usuario[1]
+                                        s_k = usuario[3]
+                                for socket in CONNECTION_LIST:
+                                    if str(socket.fileno()) == dest_socket_id:
+                                        # Found socket descriptor
+                                        dest_socket = socket
+                                msg = message[5 + len(nickname):]
+                                data = '^' + from_nickname + ',' + msg
+                                encrypted_data = encrypt(data, s_k)
+                                server_notice(dest_socket, encrypted_data)
                             else:
                                 reply_error = '||Command not recognized.\n'
                                 encrypted_reply = encrypt(reply_error, symm_key)
