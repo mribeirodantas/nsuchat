@@ -194,9 +194,9 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                                             # already with this nickname
                                             if register(user[0],
                                                   str(sock.fileno()), new_nick,
-                                                  symmetric_key, crc) is True:
-                                                print '%s known as %s.' %\
-                                                  (nickname, new_nick)
+                                                  symm_key, crc) is True:
+                                                print '%s is now known as ' +\
+                                                '%s.' % (nickname, new_nick)
                                                 # Remove o anterior
                                                 # Isto porque tupla é imutável
                                                 for index, user in \
@@ -205,19 +205,16 @@ def listen_for_conn(SERVER_PORT, MAX_CONN_REQUEST, MAX_NICK_SIZE,
                                                         del USERS_LIST[index]
                                                 broadcast(sock, '\n' +
                                                 strftime('[%H:%M:%S] ',
-                                                gmtime()) + nickname +
-                                                'now known as' + new_nick +
-                                                '\n', server_socket)
+                                                gmtime()) + '[' + nickname + ']'
+                                                + ' is now known as ' +
+                                                new_nick + '\n', server_socket)
                                             else:
                                                 pass
                                                 # Falta tratar quando tem gente
                                                 # com este nick
-                                                #msg = encrypt('##' + nickname, symmetric_key)
+                                                #msg = encrypt('##' + nickname,
+                                                #symmetric_key)
                                                 #server_notice(sock, msg)
-                                broadcast(sock, '\n' +
-                                strftime('[%H:%M:%S] ', gmtime()) + '[' +
-                                nickname + '] ' + 'is now known as ' +
-                                new_nick + '.\n', server_socket)
 
                                 print nickname + ' (%s, %s) is removed' % addr
                             else:
