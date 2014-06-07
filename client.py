@@ -181,7 +181,7 @@ if __name__ == "__main__":
                     message = encrypt(msg, symm_key)
                     client_socket.send(message)
                     # If a command has just been run, do not show prompt
-                    if msg[:2] == '/n':
+                    if '/nicklist' in msg:
                         pass
                     else:
                         prompt()
