@@ -28,6 +28,7 @@ from time import gmtime, strftime
 from communication import synchronize_symm
 from crypto import decrypt, encrypt, text2ascii, gen_symm_key
 from datetime import datetime
+import os
 
 VERSION = 0.1  # Client Application Protocol Version
 nickname = ''
@@ -174,17 +175,24 @@ if __name__ == "__main__":
                             sys.stdout.write(data[1:])
                             prompt()
 
-            #user entered a message
+            # user entered a message
             else:
                 try:
                     msg = sys.stdin.readline()
-                    message = encrypt(msg, symm_key)
-                    client_socket.send(message)
-                    # If a command has just been run, do not show prompt
-                    if '/nicklist' in msg:
-                        pass
-                    else:
+                    if '/clear' in msg:
+                        # ANSI Way
+                        # Clear the window: print chr(27) + "[2J"
+                        # Move cursor to top of the window \x1b[H
+                        sys.stderr.write("\x1b[2J\x1b[H")
                         prompt()
+                    else:
+                        message = encrypt(msg, symm_key)
+                        client_socket.send(message)
+                        # If a command has just been run, do not show prompt
+                        if '/nicklist' in msg:
+                            pass
+                        else:
+                            prompt()
                 except (KeyboardInterrupt, IndexError):
                     print '\nQuitting...'
                     sys.exit()
